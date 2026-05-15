@@ -1,0 +1,18 @@
+example.com {
+    # WebSocket endpoint for StealthPTE clients
+    handle /api/v1/stream {
+        reverse_proxy server:8080
+    }
+
+    # Admin Web UI and API
+    handle /admin/* {
+        reverse_proxy server:8080
+    }
+
+    handle /admin/login {
+        reverse_proxy server:8080
+    }
+
+    # Block everything else
+    respond 404
+}

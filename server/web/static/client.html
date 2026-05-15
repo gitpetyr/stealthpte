@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StealthPTE · 客户端详情</title>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;padding:2rem}
+  nav{display:flex;align-items:center;gap:1rem;margin-bottom:2rem}
+  .brand{font-size:1.2rem;font-weight:700;color:#38bdf8}
+  a.back{color:#94a3b8;text-decoration:none;font-size:.9rem}
+  a.back:hover{color:#e2e8f0}
+  h2{font-size:1.3rem;font-weight:600;margin-bottom:.3rem}
+  .subtitle{font-size:.85rem;color:#94a3b8;margin-bottom:1.5rem}
+  .card{background:#1e293b;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th{text-align:left;padding:.6rem 1rem;color:#94a3b8;border-bottom:1px solid #334155;font-weight:500}
+  td{padding:.7rem 1rem;border-bottom:1px solid #0f172a}
+  tr:last-child td{border-bottom:none}
+  .badge{padding:.2rem .6rem;border-radius:4px;font-size:.75rem;font-weight:600}
+  .tcp{background:#1d4ed8;color:#bfdbfe}
+  .udp{background:#7c3aed;color:#ddd6fe}
+  .add-btn{background:#0ea5e9;border:none;border-radius:8px;color:#fff;padding:.55rem 1.2rem;cursor:pointer;font-size:.9rem}
+  .add-btn:hover{background:#0284c7}
+  .icon-btn{background:none;border:none;cursor:pointer;padding:.3rem .5rem;border-radius:5px;font-size:.85rem}
+  .del{color:#f87171} .del:hover{background:#450a0a}
+  .tog{color:#94a3b8} .tog:hover{background:#334155}
+  input,select{padding:.5rem .8rem;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-size:.9rem;outline:none}
+  input:focus,select:focus{border-color:#38bdf8}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100}
+  .modal{background:#1e293b;border-radius:12px;padding:2rem;width:100%;max-width:460px}
+  .modal h3{font-size:1.1rem;font-weight:600;margin-bottom:1.5rem}
+  .field{margin-bottom:1rem}
+  .field label{display:block;font-size:.8rem;color:#94a3b8;margin-bottom:.35rem}
+  .field input,.field select{width:100%}
+  .port-status{font-size:.78rem;margin-top:.3rem}
+  .ok{color:#22c55e} .bad{color:#f87171}
+  .actions{display:flex;gap:.8rem;margin-top:1.5rem;justify-content:flex-end}
+  .cancel-btn{background:#334155;border:none;border-radius:8px;color:#e2e8f0;padding:.55rem 1.2rem;cursor:pointer}
+  .fmtbytes{color:#94a3b8;font-size:.8rem}
+  [x-cloak]{display:none!important}
+</style>
+</head>
+<body x-data="app()">
+  <nav>
+    <a class="back" href="/admin/">← 返回总览</a>
+    <div class="brand">⬡ StealthPTE</div>
+  </nav>
+
+  <h2 x-text="clientName"></h2>
+  <p class="subtitle">
+    ID: <code x-text="clientId"></code>
+    &nbsp;·&nbsp;
+    <span x-text="online ? '🟢 在线' : '⚫ 离线'"></span>
+  </p>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+      <div style="font-weight:600">隧道规则</div>
+      <button class="add-btn" @click="openAdd">+ 新增隧道</button>
+    </div>
+    <table>
+      <thead>
+        <tr><th>协议</th><th>服务端端口</th><th>内网目标</th><th>流量(↓/↑)</th><th>状态</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        <template x-for="t in tunnels" :key="t.id">
+          <tr :style="t.enabled?'':'opacity:.5'">
+            <td><span class="badge" :class="t.proto" x-text="t.proto.toUpperCase()"></span></td>
+            <td x-text="t.server_port"></td>
+            <td x-text="t.target_addr"></td>
+            <td class="fmtbytes" x-text="fmt(t.rx_bytes)+' / '+fmt(t.tx_bytes)"></td>
+            <td x-text="t.enabled ? '启用' : '停用'" :style="t.enabled?'color:#22c55e':'color:#94a3b8'"></td>
+            <td style="display:flex;gap:.3rem">
+              <button class="icon-btn tog" @click="toggleTunnel(t)" x-text="t.enabled?'停用':'启用'"></button>
+              <button class="icon-btn del" @click="delTunnel(t.id)">删除</button>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="tunnels.length===0">
+          <td colspan="6" style="text-align:center;color:#475569;padding:2rem">暂无隧道规则</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 新增隧道 Modal -->
+  <div class="modal-bg" x-show="showAdd" x-cloak>
+    <div class="modal">
+      <h3>新增隧道规则</h3>
+      <div class="field">
+        <label>协议</label>
+        <select x-model="form.proto">
+          <option value="tcp">TCP</option>
+          <option value="udp">UDP</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>服务端端口</label>
+        <input type="number" x-model.number="form.port" placeholder="10080" @input.debounce.400ms="checkPort">
+        <div class="port-status" x-show="portStatus" :class="portStatus==='ok'?'ok':'bad'"
+             x-text="portStatus==='ok'?'✓ 端口可用':(portStatus==='range'?'✗ 超出允许范围':'✗ 端口已被占用')"></div>
+      </div>
+      <div class="field">
+        <label>内网目标地址</label>
+        <input x-model="form.target" placeholder="192.168.1.10:80">
+      </div>
+      <div class="actions">
+        <button class="cancel-btn" @click="showAdd=false">取消</button>
+        <button class="add-btn" @click="createTunnel" :disabled="portStatus && portStatus!=='ok'">创建</button>
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+function app() {
+  const params = new URLSearchParams(location.search);
+  const clientId = params.get('id') || '';
+  return {
+    clientId,
+    clientName: '',
+    online: false,
+    tunnels: [],
+    showAdd: false,
+    portStatus: '',
+    form: { proto:'tcp', port:'', target:'' },
+
+    async init() {
+      await this.loadAll();
+      setInterval(() => this.loadAll(), 10000);
+    },
+    async loadAll() {
+      const [cr, tr] = await Promise.all([
+        fetch('/admin/api/v1/clients'),
+        fetch('/admin/api/v1/clients/'+clientId+'/tunnels')
+      ]);
+      if (cr.status===401 || tr.status===401) { location.href='/admin/login'; return; }
+      const clients = await cr.json() || [];
+      const c = clients.find(x=>x.id===clientId);
+      if (c) { this.clientName=c.name; this.online=c.online; }
+      this.tunnels = await tr.json() || [];
+    },
+    openAdd() {
+      this.form = {proto:'tcp', port:'', target:''};
+      this.portStatus = '';
+      this.showAdd = true;
+    },
+    async checkPort() {
+      if (!this.form.port) { this.portStatus=''; return; }
+      const r = await fetch('/admin/api/v1/ports/check?port='+this.form.port);
+      const d = await r.json();
+      if (!d.in_range) this.portStatus = 'range';
+      else if (d.used) this.portStatus = 'used';
+      else this.portStatus = 'ok';
+    },
+    async createTunnel() {
+      if (!this.form.target.trim() || !this.form.port) return;
+      const r = await fetch('/admin/api/v1/clients/'+clientId+'/tunnels', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({proto:this.form.proto, server_port:this.form.port, target_addr:this.form.target.trim(), enabled:true})
+      });
+      if (r.ok) { this.showAdd=false; await this.loadAll(); }
+      else { alert(await r.text()); }
+    },
+    async toggleTunnel(t) {
+      await fetch('/admin/api/v1/clients/'+clientId+'/tunnels/'+t.id, {
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({enabled:!t.enabled})
+      });
+      await this.loadAll();
+    },
+    async delTunnel(id) {
+      if (!confirm('确认删除此隧道规则？')) return;
+      await fetch('/admin/api/v1/clients/'+clientId+'/tunnels/'+id, {method:'DELETE'});
+      await this.loadAll();
+    },
+    fmt(bytes) {
+      if (!bytes) return '0 B';
+      const u=['B','KB','MB','GB'];
+      let i=0; let v=bytes;
+      while(v>=1024&&i<u.length-1){v/=1024;i++}
+      return v.toFixed(1)+' '+u[i];
+    }
+  }
+}
+</script>
+</html>

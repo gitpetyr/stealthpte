@@ -1,0 +1,5 @@
+.git
+client/target
+*.md
+.github
+docs

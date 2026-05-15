@@ -1,0 +1,37 @@
+[package]
+name = "stealthclient"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stealthclient"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
+tungstenite = { version = "0.24" }
+rustls = "0.23"
+yamux = "0.13"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+futures-util = "0.3"
+bytes = "1"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-service = "0.7"
+windows = { version = "0.58", features = [
+    "Win32_System_Services",
+    "Win32_Foundation",
+    "Win32_Security",
+] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

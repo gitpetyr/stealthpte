@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StealthPTE · 总览</title>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;padding:2rem}
+  nav{display:flex;align-items:center;gap:1rem;margin-bottom:2rem}
+  .brand{font-size:1.2rem;font-weight:700;color:#38bdf8}
+  h2{font-size:1.3rem;font-weight:600;margin-bottom:1.2rem}
+  .card{background:#1e293b;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th{text-align:left;padding:.6rem 1rem;color:#94a3b8;border-bottom:1px solid #334155;font-weight:500}
+  td{padding:.7rem 1rem;border-bottom:1px solid #1e293b}
+  tr:last-child td{border-bottom:none}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:.4rem}
+  .online{background:#22c55e}
+  .offline{background:#475569}
+  a.btn{display:inline-block;padding:.35rem .8rem;background:#0ea5e9;border-radius:6px;color:#fff;text-decoration:none;font-size:.8rem}
+  a.btn:hover{background:#0284c7}
+  .stat{display:inline-block;margin-right:1.5rem;font-size:.85rem;color:#94a3b8}
+  .stat span{color:#e2e8f0;font-weight:600}
+  .add-btn{background:#0ea5e9;border:none;border-radius:8px;color:#fff;padding:.55rem 1.2rem;cursor:pointer;font-size:.9rem}
+  .add-btn:hover{background:#0284c7}
+  input,select{padding:.5rem .8rem;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-size:.9rem;outline:none}
+  input:focus,select:focus{border-color:#38bdf8}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100}
+  .modal{background:#1e293b;border-radius:12px;padding:2rem;width:100%;max-width:440px}
+  .modal h3{font-size:1.1rem;font-weight:600;margin-bottom:1.5rem}
+  .field{margin-bottom:1rem}
+  .field label{display:block;font-size:.8rem;color:#94a3b8;margin-bottom:.35rem}
+  .field input,.field select{width:100%}
+  .actions{display:flex;gap:.8rem;margin-top:1.5rem;justify-content:flex-end}
+  .cancel-btn{background:#334155;border:none;border-radius:8px;color:#e2e8f0;padding:.55rem 1.2rem;cursor:pointer}
+  .err{color:#f87171;font-size:.8rem;margin-top:.4rem}
+</style>
+</head>
+<body x-data="app()">
+  <nav>
+    <div class="brand">⬡ StealthPTE</div>
+  </nav>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+      <h2 style="margin:0">客户端</h2>
+      <button class="add-btn" @click="showAdd=true">+ 新增客户端</button>
+    </div>
+    <table>
+      <thead>
+        <tr><th>名称</th><th>状态</th><th>ID</th><th>Token</th><th>创建时间</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        <template x-for="c in clients" :key="c.id">
+          <tr>
+            <td x-text="c.name"></td>
+            <td>
+              <span class="dot" :class="c.online ? 'online' : 'offline'"></span>
+              <span x-text="c.online ? '在线' : '离线'"></span>
+            </td>
+            <td><code x-text="c.id" style="font-size:.8rem;color:#94a3b8"></code></td>
+            <td><code x-text="c.token.slice(0,16)+'…'" style="font-size:.8rem;color:#94a3b8"></code></td>
+            <td x-text="fmtTime(c.created_at)"></td>
+            <td style="display:flex;gap:.5rem">
+              <a class="btn" :href="'/admin/client.html?id='+c.id">管理</a>
+              <button style="background:#ef4444;border:none;border-radius:6px;color:#fff;padding:.35rem .8rem;cursor:pointer;font-size:.8rem" @click="deleteClient(c.id,c.name)">删除</button>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="clients.length===0">
+          <td colspan="6" style="text-align:center;color:#475569;padding:2rem">暂无客户端</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 新增客户端 Modal -->
+  <div class="modal-bg" x-show="showAdd" x-cloak>
+    <div class="modal">
+      <h3>新增客户端</h3>
+      <div class="field">
+        <label>名称</label>
+        <input x-model="newName" placeholder="例如：office-pc" @keydown.enter="createClient">
+      </div>
+      <div class="actions">
+        <button class="cancel-btn" @click="showAdd=false;newName=''">取消</button>
+        <button class="add-btn" @click="createClient">创建</button>
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+function app() {
+  return {
+    clients: [],
+    showAdd: false,
+    newName: '',
+    async init() {
+      await this.load();
+      setInterval(() => this.load(), 10000);
+    },
+    async load() {
+      const r = await fetch('/admin/api/v1/clients');
+      if (r.status===401) { location.href='/admin/login'; return; }
+      this.clients = await r.json() || [];
+    },
+    async createClient() {
+      if (!this.newName.trim()) return;
+      const r = await fetch('/admin/api/v1/clients', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name:this.newName.trim()})
+      });
+      if (r.ok) { this.showAdd=false; this.newName=''; await this.load(); }
+    },
+    async deleteClient(id, name) {
+      if (!confirm(`确认删除客户端 "${name}"？相关隧道也会被删除。`)) return;
+      await fetch('/admin/api/v1/clients/'+id, {method:'DELETE'});
+      await this.load();
+    },
+    fmtTime(ts) {
+      return new Date(ts*1000).toLocaleString('zh-CN');
+    }
+  }
+}
+</script>
+</html>

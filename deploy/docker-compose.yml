@@ -1,0 +1,37 @@
+services:
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+
+  server:
+    image: ghcr.io/stealthpte/stealthpte-server:latest
+    restart: unless-stopped
+    ports:
+      - "10000-20000:10000-20000/tcp"
+      - "10000-20000:10000-20000/udp"
+    volumes:
+      - ./data:/data
+    environment:
+      WS_PATH: /api/v1/stream
+      PORT_RANGE: 10000-20000
+      ADMIN_PASS: changeme
+      DATA_DIR: /data
+      LISTEN: :8080
+    networks:
+      - internal
+
+networks:
+  internal:
+
+volumes:
+  caddy_data:
+  caddy_config:
