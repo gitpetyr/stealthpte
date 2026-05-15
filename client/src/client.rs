@@ -115,7 +115,7 @@ impl Client {
         mut registry: TunnelRegistry,
     ) -> Result<()> {
         loop {
-            match conn.next().await {
+            match std::future::poll_fn(|cx| conn.poll_next_inbound(cx)).await {
                 Some(Ok(mut stream)) => {
                     let mut hdr = [0u8; 4];
                     if stream.read_exact(&mut hdr).await.is_err() {
