@@ -1,15 +1,15 @@
 use anyhow::{Context, Result};
+use futures_util::io::AsyncReadExt;
 use futures_util::{SinkExt, StreamExt};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::time::{sleep, timeout};
 use tokio_tungstenite::connect_async_tls_with_config;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::header;
 use tokio_tungstenite::tungstenite::Message;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use yamux::{Config as YamuxConfig, Connection, Mode};
 
 use crate::config::Config;
@@ -59,7 +59,6 @@ impl Client {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                 .parse()?,
         );
-        // Extract origin from server_url
         let origin = self.cfg.server_url
             .replace("wss://", "https://")
             .replace("ws://", "http://");
@@ -73,7 +72,6 @@ impl Client {
 
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-        // Send hello
         let hello = serde_json::to_string(&ClientMsg::Hello {
             client_id: self.cfg.client_id.clone(),
             token: self.cfg.token.clone(),
@@ -81,7 +79,6 @@ impl Client {
         })?;
         ws_tx.send(Message::Text(hello.into())).await?;
 
-        // Receive hello_ack
         let ack_msg = timeout(Duration::from_secs(15), ws_rx.next())
             .await
             .context("hello_ack timeout")?
@@ -101,70 +98,46 @@ impl Client {
 
         info!("authenticated, {} tunnel(s) active", tunnels.len());
 
-        // Wrap WS as net.Conn-compatible stream for yamux
         let ws_conn = crate::wsconn::WsConn::new(ws_tx, ws_rx);
         let yamux_conn = Connection::new(ws_conn, YamuxConfig::default(), Mode::Client);
 
-        let (ctrl_tx, ctrl_rx) = tokio::sync::mpsc::channel::<Vec<u8>>(64);
-
-        // Register initial tunnels
         let mut registry = TunnelRegistry::new();
         for t in tunnels {
             registry.add(t);
         }
 
-        // Run yamux + control loop
-        self.yamux_loop(yamux_conn, registry, ctrl_tx).await
+        self.yamux_loop(yamux_conn, registry).await
     }
 
     async fn yamux_loop(
         &self,
         mut conn: Connection<crate::wsconn::WsConn>,
         mut registry: TunnelRegistry,
-        ctrl_tx: tokio::sync::mpsc::Sender<Vec<u8>>,
     ) -> Result<()> {
-        use yamux::connection::State;
-
-        // Ping timer
-        let mut ping_interval = tokio::time::interval(Duration::from_secs(60));
-        ping_interval.tick().await; // discard first tick
-
         loop {
-            tokio::select! {
-                _ = ping_interval.tick() => {
-                    let pong = serde_json::to_vec(&ClientMsg::Pong)?;
-                    // We send pong proactively as keep-alive (server sends ping)
-                    let _ = ctrl_tx.try_send(pong);
-                }
-
-                // Accept inbound streams from server
-                stream = conn.next_stream() => {
-                    match stream {
-                        Ok(Some(mut stream)) => {
-                            // First 4 bytes = tunnel ID
-                            let mut hdr = [0u8; 4];
-                            if stream.read_exact(&mut hdr).await.is_err() {
-                                continue;
-                            }
-                            let tunnel_id = u32::from_be_bytes(hdr) as u64;
-                            if let Some(t) = registry.get(tunnel_id) {
-                                let target = t.target.clone();
-                                let proto = t.proto.clone();
-                                tokio::spawn(async move {
-                                    if proto == "tcp" {
-                                        handle_tcp_stream(stream, target).await;
-                                    } else {
-                                        handle_udp_stream(stream, target).await;
-                                    }
-                                });
+            match conn.next().await {
+                Some(Ok(mut stream)) => {
+                    let mut hdr = [0u8; 4];
+                    if stream.read_exact(&mut hdr).await.is_err() {
+                        continue;
+                    }
+                    let tunnel_id = u32::from_be_bytes(hdr) as u64;
+                    if let Some(t) = registry.get(tunnel_id) {
+                        let target = t.target.clone();
+                        let proto = t.proto.clone();
+                        tokio::spawn(async move {
+                            if proto == "tcp" {
+                                handle_tcp_stream(stream, target).await;
                             } else {
-                                warn!("unknown tunnel id {tunnel_id}");
+                                handle_udp_stream(stream, target).await;
                             }
-                        }
-                        Ok(None) => return Ok(()),
-                        Err(e) => return Err(e.into()),
+                        });
+                    } else {
+                        warn!("unknown tunnel id {tunnel_id}");
                     }
                 }
+                Some(Err(e)) => return Err(e.into()),
+                None => return Ok(()),
             }
         }
     }

@@ -1,18 +1,16 @@
-use anyhow::Result;
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{BufMut, BytesMut};
 use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpStream, UdpSocket};
-use tokio::sync::Mutex;
-use tokio::time::{Duration, Instant};
+use tokio_util::compat::FuturesAsyncReadCompatExt;
 use tracing::{debug, warn};
 use yamux::Stream;
 
 use crate::protocol::TunnelInfo;
 
-pub async fn handle_tcp_stream(mut stream: Stream, target: String) {
+pub async fn handle_tcp_stream(stream: Stream, target: String) {
+    let stream = stream.compat();
     let mut tcp = match TcpStream::connect(&target).await {
         Ok(c) => c,
         Err(e) => {
@@ -33,7 +31,7 @@ pub async fn handle_tcp_stream(mut stream: Stream, target: String) {
     }
 }
 
-pub async fn handle_udp_stream(mut stream: Stream, target: String) {
+pub async fn handle_udp_stream(stream: Stream, target: String) {
     let sock = match UdpSocket::bind("0.0.0.0:0").await {
         Ok(s) => s,
         Err(e) => {
@@ -48,10 +46,10 @@ pub async fn handle_udp_stream(mut stream: Stream, target: String) {
 
     let sock = Arc::new(sock);
     let sock2 = sock.clone();
+    let stream = stream.compat();
     let (mut read_half, mut write_half) = tokio::io::split(stream);
 
-    // Forward incoming stream packets to UDP target
-    let fwd = tokio::spawn(async move {
+    let mut fwd = tokio::spawn(async move {
         let mut len_buf = [0u8; 2];
         loop {
             if read_half.read_exact(&mut len_buf).await.is_err() {
@@ -68,7 +66,6 @@ pub async fn handle_udp_stream(mut stream: Stream, target: String) {
         }
     });
 
-    // Forward UDP responses back to stream
     let mut recv_buf = vec![0u8; 65535];
     loop {
         tokio::select! {
@@ -84,7 +81,7 @@ pub async fn handle_udp_stream(mut stream: Stream, target: String) {
                     Err(_) => break,
                 }
             }
-            _ = fwd.as_ref() => break,
+            _ = &mut fwd => break,
         }
     }
 }
