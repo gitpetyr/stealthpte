@@ -7,39 +7,39 @@
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;padding:2rem}
+  body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#1e293b;padding:2rem}
   nav{display:flex;align-items:center;gap:1rem;margin-bottom:2rem}
-  .brand{font-size:1.2rem;font-weight:700;color:#38bdf8}
-  a.back{color:#94a3b8;text-decoration:none;font-size:.9rem}
-  a.back:hover{color:#e2e8f0}
+  .brand{font-size:1.2rem;font-weight:700;color:#0ea5e9}
+  a.back{color:#64748b;text-decoration:none;font-size:.9rem}
+  a.back:hover{color:#1e293b}
   h2{font-size:1.3rem;font-weight:600;margin-bottom:.3rem}
-  .subtitle{font-size:.85rem;color:#94a3b8;margin-bottom:1.5rem}
-  .card{background:#1e293b;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem}
+  .subtitle{font-size:.85rem;color:#64748b;margin-bottom:1.5rem}
+  .card{background:#ffffff;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,.06)}
   table{width:100%;border-collapse:collapse;font-size:.9rem}
-  th{text-align:left;padding:.6rem 1rem;color:#94a3b8;border-bottom:1px solid #334155;font-weight:500}
-  td{padding:.7rem 1rem;border-bottom:1px solid #0f172a}
+  th{text-align:left;padding:.6rem 1rem;color:#64748b;border-bottom:1px solid #e2e8f0;font-weight:500}
+  td{padding:.7rem 1rem;border-bottom:1px solid #f1f5f9}
   tr:last-child td{border-bottom:none}
   .badge{padding:.2rem .6rem;border-radius:4px;font-size:.75rem;font-weight:600}
-  .tcp{background:#1d4ed8;color:#bfdbfe}
-  .udp{background:#7c3aed;color:#ddd6fe}
+  .tcp{background:#dbeafe;color:#1d4ed8}
+  .udp{background:#ede9fe;color:#7c3aed}
   .add-btn{background:#0ea5e9;border:none;border-radius:8px;color:#fff;padding:.55rem 1.2rem;cursor:pointer;font-size:.9rem}
   .add-btn:hover{background:#0284c7}
   .icon-btn{background:none;border:none;cursor:pointer;padding:.3rem .5rem;border-radius:5px;font-size:.85rem}
-  .del{color:#f87171} .del:hover{background:#450a0a}
-  .tog{color:#94a3b8} .tog:hover{background:#334155}
-  input,select{padding:.5rem .8rem;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-size:.9rem;outline:none}
-  input:focus,select:focus{border-color:#38bdf8}
-  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100}
-  .modal{background:#1e293b;border-radius:12px;padding:2rem;width:100%;max-width:460px}
+  .del{color:#ef4444} .del:hover{background:#fee2e2}
+  .tog{color:#64748b} .tog:hover{background:#f1f5f9}
+  input,select{padding:.5rem .8rem;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;color:#1e293b;font-size:.9rem;outline:none}
+  input:focus,select:focus{border-color:#0ea5e9}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:100}
+  .modal{background:#ffffff;border-radius:12px;padding:2rem;width:100%;max-width:460px;box-shadow:0 8px 32px rgba(0,0,0,.12)}
   .modal h3{font-size:1.1rem;font-weight:600;margin-bottom:1.5rem}
   .field{margin-bottom:1rem}
-  .field label{display:block;font-size:.8rem;color:#94a3b8;margin-bottom:.35rem}
+  .field label{display:block;font-size:.8rem;color:#64748b;margin-bottom:.35rem}
   .field input,.field select{width:100%}
   .port-status{font-size:.78rem;margin-top:.3rem}
-  .ok{color:#22c55e} .bad{color:#f87171}
+  .ok{color:#16a34a} .bad{color:#ef4444}
   .actions{display:flex;gap:.8rem;margin-top:1.5rem;justify-content:flex-end}
-  .cancel-btn{background:#334155;border:none;border-radius:8px;color:#e2e8f0;padding:.55rem 1.2rem;cursor:pointer}
-  .fmtbytes{color:#94a3b8;font-size:.8rem}
+  .cancel-btn{background:#f1f5f9;border:none;border-radius:8px;color:#475569;padding:.55rem 1.2rem;cursor:pointer}
+  .fmtbytes{color:#64748b;font-size:.8rem}
   [x-cloak]{display:none!important}
 </style>
 </head>
@@ -72,7 +72,7 @@
             <td x-text="t.server_port"></td>
             <td x-text="t.target_addr"></td>
             <td class="fmtbytes" x-text="fmt(t.rx_bytes)+' / '+fmt(t.tx_bytes)"></td>
-            <td x-text="t.enabled ? '启用' : '停用'" :style="t.enabled?'color:#22c55e':'color:#94a3b8'"></td>
+            <td x-text="t.enabled ? '启用' : '停用'" :style="t.enabled?'color:#16a34a':'color:#94a3b8'"></td>
             <td style="display:flex;gap:.3rem">
               <button class="icon-btn tog" @click="toggleTunnel(t)" x-text="t.enabled?'停用':'启用'"></button>
               <button class="icon-btn del" @click="delTunnel(t.id)">删除</button>
@@ -80,7 +80,7 @@
           </tr>
         </template>
         <tr x-show="tunnels.length===0">
-          <td colspan="6" style="text-align:center;color:#475569;padding:2rem">暂无隧道规则</td>
+          <td colspan="6" style="text-align:center;color:#94a3b8;padding:2rem">暂无隧道规则</td>
         </tr>
       </tbody>
     </table>

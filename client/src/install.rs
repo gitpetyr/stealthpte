@@ -9,8 +9,14 @@ const CONFIG_DIR: &str = r"C:\ProgramData\wnsvc";
 const CONFIG_PATH: &str = r"C:\ProgramData\wnsvc\config.toml";
 const BINARY_PATH: &str = r"C:\Windows\System32\wnsvc.exe";
 
+pub struct InstallOpts {
+    pub server_url: Option<String>,
+    pub client_id: Option<String>,
+    pub token: Option<String>,
+}
+
 #[cfg(windows)]
-pub fn install() -> Result<()> {
+pub fn install(opts: InstallOpts) -> Result<()> {
     use std::ffi::OsString;
     use windows::Win32::Foundation::ERROR_SERVICE_EXISTS;
     use windows_service::service::{
@@ -27,7 +33,19 @@ pub fn install() -> Result<()> {
     // 2. Handle config
     std::fs::create_dir_all(CONFIG_DIR).context("create config dir")?;
     let cfg_path = std::path::Path::new(CONFIG_PATH);
-    if !cfg_path.exists() {
+
+    if opts.server_url.is_some() || opts.client_id.is_some() || opts.token.is_some() {
+        // Write config directly from supplied flags (overwrite if exists)
+        let server_url = opts.server_url.as_deref().unwrap_or("");
+        let client_id = opts.client_id.as_deref().unwrap_or("");
+        let token = opts.token.as_deref().unwrap_or("");
+        let content = format!(
+            "server_url = {:?}\nclient_id  = {:?}\ntoken      = {:?}\n",
+            server_url, client_id, token
+        );
+        std::fs::write(cfg_path, content).context("write config")?;
+        println!("Config written to {CONFIG_PATH}");
+    } else if !cfg_path.exists() {
         std::fs::write(cfg_path, crate::config::Config::template())
             .context("write config template")?;
         println!("Config template written to {CONFIG_PATH}");
@@ -117,7 +135,7 @@ pub fn status() -> Result<()> {
 }
 
 #[cfg(not(windows))]
-pub fn install() -> Result<()> {
+pub fn install(_opts: InstallOpts) -> Result<()> {
     anyhow::bail!("install only supported on Windows")
 }
 #[cfg(not(windows))]

@@ -22,7 +22,17 @@ fn main() {
     let flag = args.get(1).map(|s| s.as_str()).unwrap_or("");
 
     let result = match flag {
-        "--install" => install::install(),
+        "--install" => {
+            let get_opt = |prefix: &str| -> Option<String> {
+                args[2..].iter().find(|a| a.starts_with(prefix))
+                    .map(|a| a[prefix.len()..].to_owned())
+            };
+            install::install(install::InstallOpts {
+                server_url: get_opt("--server-url="),
+                client_id: get_opt("--client-id="),
+                token: get_opt("--token="),
+            })
+        }
         "--uninstall" => install::uninstall(),
         "--status" => install::status(),
         "--run" => service::windows_service::run_as_service(),
@@ -49,7 +59,7 @@ fn main() {
         }
         other => {
             eprintln!("Unknown flag: {other}");
-            eprintln!("Usage: stealthclient [--install | --uninstall | --run | --status]");
+            eprintln!("Usage: stealthclient [--install [--server-url=WSS_URL] [--client-id=ID] [--token=TOKEN] | --uninstall | --run | --status]");
             std::process::exit(1);
         }
     };

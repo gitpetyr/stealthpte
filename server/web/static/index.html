@@ -7,35 +7,35 @@
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;padding:2rem}
+  body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#1e293b;padding:2rem}
   nav{display:flex;align-items:center;gap:1rem;margin-bottom:2rem}
-  .brand{font-size:1.2rem;font-weight:700;color:#38bdf8}
+  .brand{font-size:1.2rem;font-weight:700;color:#0ea5e9}
   h2{font-size:1.3rem;font-weight:600;margin-bottom:1.2rem}
-  .card{background:#1e293b;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem}
+  .card{background:#ffffff;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,.06)}
   table{width:100%;border-collapse:collapse;font-size:.9rem}
-  th{text-align:left;padding:.6rem 1rem;color:#94a3b8;border-bottom:1px solid #334155;font-weight:500}
-  td{padding:.7rem 1rem;border-bottom:1px solid #1e293b}
+  th{text-align:left;padding:.6rem 1rem;color:#64748b;border-bottom:1px solid #e2e8f0;font-weight:500}
+  td{padding:.7rem 1rem;border-bottom:1px solid #f1f5f9}
   tr:last-child td{border-bottom:none}
   .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:.4rem}
   .online{background:#22c55e}
-  .offline{background:#475569}
+  .offline{background:#94a3b8}
   a.btn{display:inline-block;padding:.35rem .8rem;background:#0ea5e9;border-radius:6px;color:#fff;text-decoration:none;font-size:.8rem}
   a.btn:hover{background:#0284c7}
-  .stat{display:inline-block;margin-right:1.5rem;font-size:.85rem;color:#94a3b8}
-  .stat span{color:#e2e8f0;font-weight:600}
+  .stat{display:inline-block;margin-right:1.5rem;font-size:.85rem;color:#64748b}
+  .stat span{color:#1e293b;font-weight:600}
   .add-btn{background:#0ea5e9;border:none;border-radius:8px;color:#fff;padding:.55rem 1.2rem;cursor:pointer;font-size:.9rem}
   .add-btn:hover{background:#0284c7}
-  input,select{padding:.5rem .8rem;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-size:.9rem;outline:none}
-  input:focus,select:focus{border-color:#38bdf8}
-  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100}
-  .modal{background:#1e293b;border-radius:12px;padding:2rem;width:100%;max-width:440px}
+  input,select{padding:.5rem .8rem;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;color:#1e293b;font-size:.9rem;outline:none}
+  input:focus,select:focus{border-color:#0ea5e9}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:100}
+  .modal{background:#ffffff;border-radius:12px;padding:2rem;width:100%;max-width:440px;box-shadow:0 8px 32px rgba(0,0,0,.12)}
   .modal h3{font-size:1.1rem;font-weight:600;margin-bottom:1.5rem}
   .field{margin-bottom:1rem}
-  .field label{display:block;font-size:.8rem;color:#94a3b8;margin-bottom:.35rem}
+  .field label{display:block;font-size:.8rem;color:#64748b;margin-bottom:.35rem}
   .field input,.field select{width:100%}
   .actions{display:flex;gap:.8rem;margin-top:1.5rem;justify-content:flex-end}
-  .cancel-btn{background:#334155;border:none;border-radius:8px;color:#e2e8f0;padding:.55rem 1.2rem;cursor:pointer}
-  .err{color:#f87171;font-size:.8rem;margin-top:.4rem}
+  .cancel-btn{background:#f1f5f9;border:none;border-radius:8px;color:#475569;padding:.55rem 1.2rem;cursor:pointer}
+  .err{color:#ef4444;font-size:.8rem;margin-top:.4rem}
 </style>
 </head>
 <body x-data="app()">
@@ -60,8 +60,8 @@
               <span class="dot" :class="c.online ? 'online' : 'offline'"></span>
               <span x-text="c.online ? '在线' : '离线'"></span>
             </td>
-            <td><code x-text="c.id" style="font-size:.8rem;color:#94a3b8"></code></td>
-            <td><code x-text="c.token.slice(0,16)+'…'" style="font-size:.8rem;color:#94a3b8"></code></td>
+            <td><code x-text="c.id" style="font-size:.8rem;color:#64748b"></code></td>
+            <td><code x-text="c.token.slice(0,16)+'…'" style="font-size:.8rem;color:#64748b"></code></td>
             <td x-text="fmtTime(c.created_at)"></td>
             <td style="display:flex;gap:.5rem">
               <a class="btn" :href="'/admin/client.html?id='+c.id">管理</a>
@@ -70,7 +70,7 @@
           </tr>
         </template>
         <tr x-show="clients.length===0">
-          <td colspan="6" style="text-align:center;color:#475569;padding:2rem">暂无客户端</td>
+          <td colspan="6" style="text-align:center;color:#94a3b8;padding:2rem">暂无客户端</td>
         </tr>
       </tbody>
     </table>
@@ -90,6 +90,38 @@
       </div>
     </div>
   </div>
+
+  <!-- 创建成功·Token 显示 Modal -->
+  <div class="modal-bg" x-show="showToken" x-cloak>
+    <div class="modal" style="max-width:560px">
+      <h3>客户端创建成功</h3>
+      <p style="font-size:.85rem;color:#64748b;margin-bottom:1.2rem">Token 仅在此处完整显示一次，请妥善保存后再关闭。</p>
+      <div class="field">
+        <label>Client ID</label>
+        <input readonly :value="createdClient && createdClient.id" style="font-family:monospace;font-size:.82rem;width:100%">
+      </div>
+      <div class="field">
+        <label>Token</label>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <input readonly :value="createdClient && createdClient.token" style="flex:1;font-family:monospace;font-size:.78rem">
+          <button class="add-btn" style="white-space:nowrap;flex-shrink:0" @click="copyText(createdClient.token)">复制</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Windows 安装命令</label>
+        <div style="display:flex;gap:.5rem;align-items:flex-start">
+          <textarea readonly rows="3"
+            style="flex:1;font-family:monospace;font-size:.75rem;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;color:#1e293b;padding:.5rem .8rem;resize:none;line-height:1.5"
+            x-text="installCmd()"></textarea>
+          <button class="add-btn" style="white-space:nowrap;flex-shrink:0;margin-top:.1rem" @click="copyText(installCmd())">复制</button>
+        </div>
+      </div>
+      <div x-show="copied" style="font-size:.78rem;color:#22c55e;margin-bottom:.8rem">✓ 已复制到剪贴板</div>
+      <div class="actions">
+        <button class="add-btn" @click="showToken=false;copied=false">已保存，关闭</button>
+      </div>
+    </div>
+  </div>
 </body>
 <script>
 function app() {
@@ -97,7 +129,13 @@ function app() {
     clients: [],
     showAdd: false,
     newName: '',
+    showToken: false,
+    createdClient: null,
+    copied: false,
+    wsPath: '/api/v1/stream',
     async init() {
+      const cfgR = await fetch('/admin/api/v1/config');
+      if (cfgR.ok) { const d = await cfgR.json(); this.wsPath = d.ws_path || this.wsPath; }
       await this.load();
       setInterval(() => this.load(), 10000);
     },
@@ -106,13 +144,37 @@ function app() {
       if (r.status===401) { location.href='/admin/login'; return; }
       this.clients = await r.json() || [];
     },
+    installCmd() {
+      if (!this.createdClient) return '';
+      const base = (new URLSearchParams(location.search).get('base') || '').replace(/\/$/, '');
+      let serverUrl;
+      if (base) {
+        const wsProto = base.startsWith('https://') ? 'wss' : 'ws';
+        serverUrl = `${wsProto}://${base.replace(/^https?:\/\//, '')}${this.wsPath}`;
+      } else {
+        const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+        serverUrl = `${proto}://${location.host}${this.wsPath}`;
+      }
+      return `stealthclient.exe --install --server-url=${serverUrl} --client-id=${this.createdClient.id} --token=${this.createdClient.token}`;
+    },
+    async copyText(text) {
+      try { await navigator.clipboard.writeText(text); this.copied = true; } catch(_) {}
+    },
     async createClient() {
       if (!this.newName.trim()) return;
       const r = await fetch('/admin/api/v1/clients', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({name:this.newName.trim()})
       });
-      if (r.ok) { this.showAdd=false; this.newName=''; await this.load(); }
+      if (r.ok) {
+        const c = await r.json();
+        this.showAdd = false;
+        this.newName = '';
+        this.createdClient = c;
+        this.showToken = true;
+        this.copied = false;
+        await this.load();
+      }
     },
     async deleteClient(id, name) {
       if (!confirm(`确认删除客户端 "${name}"？相关隧道也会被删除。`)) return;

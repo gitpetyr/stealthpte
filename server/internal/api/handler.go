@@ -32,6 +32,7 @@ func New(database *db.DB, a *auth.Auth, cfg *config.Config, hub HubInterface) *H
 
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/login", h.login)
+	mux.HandleFunc("GET /admin/api/v1/config", h.getConfig)
 	mux.HandleFunc("GET /admin/api/v1/clients", h.listClients)
 	mux.HandleFunc("POST /admin/api/v1/clients", h.createClient)
 	mux.HandleFunc("DELETE /admin/api/v1/clients/{id}", h.deleteClient)
@@ -40,6 +41,11 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /admin/api/v1/clients/{id}/tunnels/{tid}", h.updateTunnel)
 	mux.HandleFunc("DELETE /admin/api/v1/clients/{id}/tunnels/{tid}", h.deleteTunnel)
 	mux.HandleFunc("GET /admin/api/v1/ports/check", h.checkPort)
+}
+
+// GET /admin/api/v1/config
+func (h *Handler) getConfig(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, map[string]string{"ws_path": h.cfg.WSPath})
 }
 
 // POST /admin/login
