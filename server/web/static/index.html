@@ -36,6 +36,11 @@
   .actions{display:flex;gap:.8rem;margin-top:1.5rem;justify-content:flex-end}
   .cancel-btn{background:#f1f5f9;border:none;border-radius:8px;color:#475569;padding:.55rem 1.2rem;cursor:pointer}
   .err{color:#ef4444;font-size:.8rem;margin-top:.4rem}
+  .icon-btn{background:none;border:none;cursor:pointer;padding:.2rem .35rem;border-radius:4px;color:#94a3b8;font-size:.8rem;line-height:1}
+  .icon-btn:hover{background:#f1f5f9;color:#0ea5e9}
+  .copy-ok{color:#22c55e!important}
+  .refresh-btn{background:#f59e0b;border:none;border-radius:6px;color:#fff;padding:.35rem .8rem;cursor:pointer;font-size:.8rem}
+  .refresh-btn:hover{background:#d97706}
 </style>
 </head>
 <body x-data="app()">
@@ -60,11 +65,22 @@
               <span class="dot" :class="c.online ? 'online' : 'offline'"></span>
               <span x-text="c.online ? '在线' : '离线'"></span>
             </td>
-            <td><code x-text="c.id" style="font-size:.8rem;color:#64748b"></code></td>
-            <td><code x-text="c.token.slice(0,16)+'…'" style="font-size:.8rem;color:#64748b"></code></td>
+            <td>
+              <code x-text="c.id" style="font-size:.8rem;color:#64748b"></code>
+              <button class="icon-btn" :class="copiedId===c.id?'copy-ok':''" @click="copyField(c.id,'id')" title="复制 ID">
+                <span x-text="copiedId===c.id?'✓':'⎘'"></span>
+              </button>
+            </td>
+            <td>
+              <code x-text="c.token.slice(0,16)+'…'" style="font-size:.8rem;color:#64748b"></code>
+              <button class="icon-btn" :class="copiedToken===c.id?'copy-ok':''" @click="copyField(c.token,'token',c.id)" title="复制 Token">
+                <span x-text="copiedToken===c.id?'✓':'⎘'"></span>
+              </button>
+            </td>
             <td x-text="fmtTime(c.created_at)"></td>
-            <td style="display:flex;gap:.5rem">
+            <td style="display:flex;gap:.5rem;flex-wrap:wrap">
               <a class="btn" :href="'/admin/client.html?id='+c.id">管理</a>
+              <button class="refresh-btn" @click="refreshToken(c)">刷新密钥</button>
               <button style="background:#ef4444;border:none;border-radius:6px;color:#fff;padding:.35rem .8rem;cursor:pointer;font-size:.8rem" @click="deleteClient(c.id,c.name)">删除</button>
             </td>
           </tr>
@@ -91,14 +107,17 @@
     </div>
   </div>
 
-  <!-- 创建成功·Token 显示 Modal -->
+  <!-- 创建成功 / 刷新密钥 Token 显示 Modal -->
   <div class="modal-bg" x-show="showToken" x-cloak>
     <div class="modal" style="max-width:560px">
-      <h3>客户端创建成功</h3>
+      <h3 x-text="tokenModalTitle"></h3>
       <p style="font-size:.85rem;color:#64748b;margin-bottom:1.2rem">Token 仅在此处完整显示一次，请妥善保存后再关闭。</p>
       <div class="field">
         <label>Client ID</label>
-        <input readonly :value="createdClient && createdClient.id" style="font-family:monospace;font-size:.82rem;width:100%">
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <input readonly :value="createdClient && createdClient.id" style="flex:1;font-family:monospace;font-size:.82rem">
+          <button class="icon-btn" style="padding:.4rem .6rem;font-size:.9rem" @click="copyText(createdClient.id)" title="复制 ID">⎘</button>
+        </div>
       </div>
       <div class="field">
         <label>Token</label>
@@ -130,8 +149,11 @@ function app() {
     showAdd: false,
     newName: '',
     showToken: false,
+    tokenModalTitle: '客户端创建成功',
     createdClient: null,
     copied: false,
+    copiedId: null,
+    copiedToken: null,
     wsPath: '/api/v1/stream',
     async init() {
       const cfgR = await fetch('/admin/api/v1/config');
@@ -160,6 +182,13 @@ function app() {
     async copyText(text) {
       try { await navigator.clipboard.writeText(text); this.copied = true; } catch(_) {}
     },
+    async copyField(text, type, id) {
+      try {
+        await navigator.clipboard.writeText(text);
+        if (type === 'id') { this.copiedId = text; setTimeout(()=>this.copiedId=null, 2000); }
+        else { this.copiedToken = id; setTimeout(()=>this.copiedToken=null, 2000); }
+      } catch(_) {}
+    },
     async createClient() {
       if (!this.newName.trim()) return;
       const r = await fetch('/admin/api/v1/clients', {
@@ -171,6 +200,19 @@ function app() {
         this.showAdd = false;
         this.newName = '';
         this.createdClient = c;
+        this.tokenModalTitle = '客户端创建成功';
+        this.showToken = true;
+        this.copied = false;
+        await this.load();
+      }
+    },
+    async refreshToken(c) {
+      if (!confirm(`确认刷新客户端 "${c.name}" 的密钥？\n刷新后旧 Token 立即失效，客户端需重新配置。`)) return;
+      const r = await fetch('/admin/api/v1/clients/'+c.id+'/token', {method:'PUT'});
+      if (r.ok) {
+        const updated = await r.json();
+        this.createdClient = updated;
+        this.tokenModalTitle = '密钥已刷新';
         this.showToken = true;
         this.copied = false;
         await this.load();

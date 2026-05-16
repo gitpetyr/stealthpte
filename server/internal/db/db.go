@@ -110,6 +110,11 @@ func (d *DB) DeleteClient(id string) error {
 	return err
 }
 
+func (d *DB) UpdateToken(id, token string) error {
+	_, err := d.sql.Exec(`UPDATE clients SET token=? WHERE id=?`, token, id)
+	return err
+}
+
 type scanner interface {
 	Scan(dest ...any) error
 }

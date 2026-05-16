@@ -36,6 +36,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/api/v1/clients", h.listClients)
 	mux.HandleFunc("POST /admin/api/v1/clients", h.createClient)
 	mux.HandleFunc("DELETE /admin/api/v1/clients/{id}", h.deleteClient)
+	mux.HandleFunc("PUT /admin/api/v1/clients/{id}/token", h.refreshToken)
 	mux.HandleFunc("GET /admin/api/v1/clients/{id}/tunnels", h.listTunnels)
 	mux.HandleFunc("POST /admin/api/v1/clients/{id}/tunnels", h.createTunnel)
 	mux.HandleFunc("PUT /admin/api/v1/clients/{id}/tunnels/{tid}", h.updateTunnel)
@@ -121,7 +122,12 @@ func (h *Handler) createClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
-	writeJSON(w, c)
+	writeJSON(w, struct {
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		Token     string `json:"token"`
+		CreatedAt int64  `json:"created_at"`
+	}{c.ID, c.Name, c.Token, c.CreatedAt.Unix()})
 }
 
 // DELETE /admin/api/v1/clients/{id}
@@ -132,6 +138,28 @@ func (h *Handler) deleteClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// PUT /admin/api/v1/clients/{id}/token
+func (h *Handler) refreshToken(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	c, err := h.db.GetClientByID(id)
+	if err != nil || c == nil {
+		http.Error(w, "client not found", http.StatusNotFound)
+		return
+	}
+	newToken := randomHex(32)
+	if err := h.db.UpdateToken(id, newToken); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	c.Token = newToken
+	writeJSON(w, struct {
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		Token     string `json:"token"`
+		CreatedAt int64  `json:"created_at"`
+	}{c.ID, c.Name, c.Token, c.CreatedAt.Unix()})
 }
 
 // GET /admin/api/v1/clients/{id}/tunnels
