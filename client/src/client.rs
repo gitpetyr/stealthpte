@@ -112,7 +112,7 @@ impl Client {
     async fn yamux_loop(
         &self,
         mut conn: Connection<crate::wsconn::WsConn>,
-        mut registry: TunnelRegistry,
+        registry: TunnelRegistry,
     ) -> Result<()> {
         loop {
             match std::future::poll_fn(|cx| conn.poll_next_inbound(cx)).await {

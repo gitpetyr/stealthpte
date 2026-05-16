@@ -99,10 +99,6 @@ impl TunnelRegistry {
         self.tunnels.insert(t.id, t);
     }
 
-    pub fn remove(&mut self, id: u64) -> Option<TunnelInfo> {
-        self.tunnels.remove(&id)
-    }
-
     pub fn get(&self, id: u64) -> Option<&TunnelInfo> {
         self.tunnels.get(&id)
     }
