@@ -35,7 +35,7 @@ func (s *Session) run() {
 }
 
 func (s *Session) wsPinger() {
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(25 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -56,7 +56,7 @@ func (s *Session) wsPinger() {
 func (s *Session) ctrlReader() {
 	// Send periodic application-level pings via control stream
 	go func() {
-		ticker := time.NewTicker(60 * time.Second)
+		ticker := time.NewTicker(25 * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
@@ -104,7 +104,7 @@ func (s *Session) sendCtrl(msg []byte) {
 		return
 	}
 	s.ctrl.SetWriteDeadline(time.Now().Add(5 * time.Second))
-	s.ctrl.Write(msg)
+	s.ctrl.Write(append(msg, '\n'))
 	s.ctrl.SetWriteDeadline(time.Time{})
 }
 

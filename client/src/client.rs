@@ -134,24 +134,26 @@ impl Client {
 
         loop {
             match std::future::poll_fn(|cx| conn.poll_next_inbound(cx)).await {
-                Some(Ok(mut stream)) => {
-                    let mut hdr = [0u8; 4];
-                    if stream.read_exact(&mut hdr).await.is_err() {
-                        continue;
-                    }
-                    let tunnel_id = u32::from_be_bytes(hdr) as u64;
-                    let info = registry.read().await.get(tunnel_id).cloned();
-                    if let Some(t) = info {
-                        tokio::spawn(async move {
+                Some(Ok(stream)) => {
+                    let registry = registry.clone();
+                    tokio::spawn(async move {
+                        let mut stream = stream;
+                        let mut hdr = [0u8; 4];
+                        if stream.read_exact(&mut hdr).await.is_err() {
+                            return;
+                        }
+                        let tunnel_id = u32::from_be_bytes(hdr) as u64;
+                        let info = registry.read().await.get(tunnel_id).cloned();
+                        if let Some(t) = info {
                             if t.proto == "tcp" {
                                 handle_tcp_stream(stream, t.target).await;
                             } else {
                                 handle_udp_stream(stream, t.target).await;
                             }
-                        });
-                    } else {
-                        warn!("unknown tunnel id {tunnel_id}");
-                    }
+                        } else {
+                            warn!("unknown tunnel id {tunnel_id}");
+                        }
+                    });
                 }
                 Some(Err(e)) => return Err(e.into()),
                 None => return Ok(()),
