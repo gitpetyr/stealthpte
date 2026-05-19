@@ -104,8 +104,9 @@
              x-text="portStatus==='ok'?'✓ 端口可用':(portStatus==='range'?'✗ 超出允许范围':'✗ 端口已被占用')"></div>
       </div>
       <div class="field">
-        <label>内网目标地址</label>
+        <label>内网目标地址 <span style="color:#94a3b8;font-size:.75rem">格式：host:port</span></label>
         <input x-model="form.target" placeholder="192.168.1.10:80">
+        <div style="font-size:.75rem;color:#94a3b8;margin-top:.25rem">客户端将把流量转发到此地址，需使用英文冒号</div>
       </div>
       <div class="actions">
         <button class="cancel-btn" @click="showAdd=false">取消</button>

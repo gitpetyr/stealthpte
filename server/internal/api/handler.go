@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -335,8 +336,20 @@ func (h *Handler) validateTunnel(proto string, port int, target string) string {
 	if port < h.cfg.PortMin || port > h.cfg.PortMax {
 		return "port out of allowed range"
 	}
-	if strings.TrimSpace(target) == "" {
+	target = strings.TrimSpace(target)
+	if target == "" {
 		return "target_addr required"
+	}
+	host, portStr, err := net.SplitHostPort(target)
+	if err != nil {
+		return "target_addr 格式错误，必须为 host:port（例如 192.168.1.10:80）"
+	}
+	if strings.TrimSpace(host) == "" {
+		return "target_addr host 不能为空"
+	}
+	p, err := strconv.Atoi(portStr)
+	if err != nil || p < 1 || p > 65535 {
+		return "target_addr 端口号必须在 1-65535 之间"
 	}
 	return ""
 }

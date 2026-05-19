@@ -20,14 +20,14 @@ type Client struct {
 }
 
 type Tunnel struct {
-	ID         int64
-	ClientID   string
-	Proto      string
-	ServerPort int
-	TargetAddr string
-	Enabled    bool
-	RxBytes    int64
-	TxBytes    int64
+	ID         int64  `json:"id"`
+	ClientID   string `json:"client_id"`
+	Proto      string `json:"proto"`
+	ServerPort int    `json:"server_port"`
+	TargetAddr string `json:"target_addr"`
+	Enabled    bool   `json:"enabled"`
+	RxBytes    int64  `json:"rx_bytes"`
+	TxBytes    int64  `json:"tx_bytes"`
 }
 
 func Open(path string) (*DB, error) {
