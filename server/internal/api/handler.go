@@ -342,14 +342,14 @@ func (h *Handler) validateTunnel(proto string, port int, target string) string {
 	}
 	host, portStr, err := net.SplitHostPort(target)
 	if err != nil {
-		return "target_addr 格式错误，必须为 host:port（例如 192.168.1.10:80）"
+		return "target_addr must be in host:port format (e.g. 192.168.1.10:80)"
 	}
 	if strings.TrimSpace(host) == "" {
-		return "target_addr host 不能为空"
+		return "target_addr host must not be empty"
 	}
 	p, err := strconv.Atoi(portStr)
 	if err != nil || p < 1 || p > 65535 {
-		return "target_addr 端口号必须在 1-65535 之间"
+		return "target_addr port must be a number between 1 and 65535"
 	}
 	return ""
 }
