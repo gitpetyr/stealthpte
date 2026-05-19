@@ -28,6 +28,20 @@ pub mod windows_service {
     }
 
     fn service_main(_args: Vec<OsString>) {
+        // Write rolling daily logs to C:\ProgramData\wnsvc\wnsvc.log.<date>
+        // _guard must stay alive until service_main returns (service stops).
+        let file_appender =
+            tracing_appender::rolling::daily(r"C:\ProgramData\wnsvc", "wnsvc.log");
+        let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::from_default_env()
+                    .add_directive(tracing::Level::INFO.into()),
+            )
+            .with_writer(non_blocking)
+            .with_ansi(false)
+            .init();
+
         let stop = Arc::new(AtomicBool::new(false));
         STOP_FLAG.set(stop.clone()).ok();
 

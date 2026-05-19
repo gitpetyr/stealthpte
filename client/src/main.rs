@@ -11,15 +11,18 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 fn main() {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(tracing::Level::INFO.into()),
-        )
-        .init();
-
     let args: Vec<String> = std::env::args().collect();
     let flag = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    // Service mode initialises its own file logger inside service_main.
+    if flag != "--run" {
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::from_default_env()
+                    .add_directive(tracing::Level::INFO.into()),
+            )
+            .init();
+    }
 
     let result = match flag {
         "--install" => {
