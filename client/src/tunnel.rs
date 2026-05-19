@@ -102,4 +102,8 @@ impl TunnelRegistry {
     pub fn get(&self, id: u64) -> Option<&TunnelInfo> {
         self.tunnels.get(&id)
     }
+
+    pub fn remove(&mut self, id: u64) {
+        self.tunnels.remove(&id);
+    }
 }
