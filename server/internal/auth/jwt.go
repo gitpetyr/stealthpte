@@ -61,6 +61,11 @@ func (a *Auth) SetCookie(w http.ResponseWriter, token string) {
 
 func (a *Auth) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only admin routes require authentication; let WebSocket and other paths through.
+		if len(r.URL.Path) < 6 || r.URL.Path[:6] != "/admin" {
+			next.ServeHTTP(w, r)
+			return
+		}
 		if r.URL.Path == "/admin/login" {
 			next.ServeHTTP(w, r)
 			return

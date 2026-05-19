@@ -28,10 +28,14 @@ pub mod windows_service {
     }
 
     fn service_main(_args: Vec<OsString>) {
-        // Write rolling daily logs to C:\ProgramData\wnsvc\wnsvc.log.<date>
+        // Roll at 500 MB, keep 3 backups: wnsvc.log, wnsvc.log.1, wnsvc.log.2
         // _guard must stay alive until service_main returns (service stops).
-        let file_appender =
-            tracing_appender::rolling::daily(r"C:\ProgramData\wnsvc", "wnsvc.log");
+        let file_appender = rolling_file::BasicRollingFileAppender::new(
+            r"C:\ProgramData\wnsvc\wnsvc.log",
+            rolling_file::RollingConditionBasic::new().max_size(500 * 1024 * 1024),
+            3,
+        )
+        .expect("open log file");
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
         tracing_subscriber::fmt()
             .with_env_filter(
